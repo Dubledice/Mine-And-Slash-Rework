@@ -77,6 +77,9 @@ public class ExileDBInit {
         Database.addRegistry(new ExileRegistryContainer<>(ExileRegistryTypes.STAT_LAYER, ""));
         Database.addRegistry(new ExileRegistryContainer<>(ExileRegistryTypes.OMEN, ""));
 
+        // Spend thresholds (datapack-backed)
+        Database.addRegistry(new ExileRegistryContainer<>(ExileRegistryTypes.SPEND_THRESHOLD, "").setIsDatapack());
+
         Database.addRegistry(new ExileRegistryContainer<>(ExileRegistryTypes.ORB_EXTEND, ""));
 
     }

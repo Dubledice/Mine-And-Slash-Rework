@@ -281,6 +281,10 @@ public class ExileDB {
         return Database.getRegistry(ExileRegistryTypes.BASE_STATS);
     }
 
+    public static ExileRegistryContainer<com.robertx22.mine_and_slash.mechanics.thresholds.datapack.SpendThresholdJson> SpendThresholds() {
+        return Database.getRegistry(ExileRegistryTypes.SPEND_THRESHOLD);
+    }
+
     public static void checkAllDatabasesHaveDefaultEmpty() {
         if (MMORPG.RUN_DEV_TOOLS) {
             for (ExileRegistryType type : ExileRegistryType.getAllInRegisterOrder()) {

@@ -32,6 +32,21 @@ public class DatabaseCaches {
             @Override
             public void accept(ExileEvents.AfterDatabaseLoaded event) {
                 resetCaches();
+                // Rebuild SpendThresholdRegistry from ExileDB entries after datapacks load (registry-only path)
+                try {
+                    com.robertx22.mine_and_slash.mechanics.thresholds.SpendThresholdRegistry.clearAll();
+                    int loaded = 0;
+                    for (var json : ExileDB.SpendThresholds().getFromDatapacks()) {
+                        if (json != null && json.enabled && json.key != null && !json.key.isEmpty()) {
+                            com.robertx22.mine_and_slash.mechanics.thresholds.SpendThresholdRegistry.registerGlobal(json.toSpec(), json.priority);
+                            loaded++;
+                        }
+                    }
+                    com.robertx22.mine_and_slash.mechanics.thresholds.SpendThresholdRegistry.freeze();
+                    System.out.println("[SpendThresholds] Loaded " + loaded + " datapack specs via ExileRegistry; total=" + com.robertx22.mine_and_slash.mechanics.thresholds.SpendThresholdRegistry.size());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
             }
         });
 

@@ -1,17 +1,24 @@
 package com.robertx22.mine_and_slash.mechanics.thresholds.datapack;
 
 import com.google.gson.annotations.SerializedName;
+import com.robertx22.library_of_exile.registry.ExileRegistryType;
+import com.robertx22.library_of_exile.registry.IAutoGson;
+import com.robertx22.library_of_exile.registry.JsonExileRegistry;
+import com.robertx22.mine_and_slash.database.registry.ExileRegistryTypes;
 import com.robertx22.mine_and_slash.mechanics.thresholds.DataDrivenSpendThresholdSpec;
 import com.robertx22.mine_and_slash.mechanics.thresholds.SpendThresholdSpec;
 import com.robertx22.mine_and_slash.saveclasses.unit.ResourceType;
 import net.minecraft.server.level.ServerPlayer;
-import com.robertx22.mine_and_slash.capability.entity.EntityData;
-import com.robertx22.mine_and_slash.database.registry.ExileDB;
-import com.robertx22.mine_and_slash.event_hooks.my_events.EffectUtils;
 
 import java.util.*;
 
-public class SpendThresholdDef {
+/**
+ * Datapack-backed registry entry for spend thresholds.
+ */
+public class SpendThresholdJson implements JsonExileRegistry<SpendThresholdJson>, IAutoGson<SpendThresholdJson> {
+
+    public static SpendThresholdJson SERIALIZER = new SpendThresholdJson();
+
     public String key;
     public String resource = "";
     public boolean enabled = true;
@@ -42,7 +49,7 @@ public class SpendThresholdDef {
     public String requireStatId = "";
 
     public static class ProcAction {
-        public String action; // "apply_effect"
+        public String action; // "exile_effect"
         @SerializedName("exile_potion_id") public String effectId;
         @SerializedName("duration_ticks") public int durationTicks = 0;
         public int stacks = 1;
@@ -54,7 +61,6 @@ public class SpendThresholdDef {
     public SpendThresholdSpec toSpec() {
         ResourceType res = parseResource(resource, ResourceType.energy);
 
-        // Modes supported: FLAT (optionally with multiply_by_level) or PERCENT_OF_MAX
         String rawMode = (threshold.mode == null ? "FLAT" : threshold.mode.trim()).toUpperCase(Locale.ROOT);
         boolean mult = threshold.multiplyByLevel;
         DataDrivenSpendThresholdSpec.ThresholdMode mode;
@@ -63,13 +69,13 @@ public class SpendThresholdDef {
         } else if ("X_PER_LEVEL".equals(rawMode)) {
             mode = DataDrivenSpendThresholdSpec.ThresholdMode.X_PER_LEVEL;
         } else {
-            mode = DataDrivenSpendThresholdSpec.ThresholdMode.FLAT; // default + treats legacy values as FLAT
+            mode = DataDrivenSpendThresholdSpec.ThresholdMode.FLAT;
         }
 
         ResourceType percentOf = null;
         if (mode == DataDrivenSpendThresholdSpec.ThresholdMode.PCT_OF_MAX
                 && threshold.percentOf != null && !threshold.percentOf.isEmpty()) {
-            percentOf = parseResource(threshold.percentOf, res); // default to this spec’s resource if bad input
+            percentOf = parseResource(threshold.percentOf, res);
         }
 
         Set<String> lockEff = (locks != null && locks.effects != null)
@@ -91,20 +97,15 @@ public class SpendThresholdDef {
             @Override
             public void onProc(ServerPlayer sp, int procs) {
                 if (onProc == null || onProc.isEmpty()) return;
-
-                var unit  = com.robertx22.mine_and_slash.uncommon.datasaving.Load.Unit(sp);
-                var store = unit.getStatusEffectsData();
-
                 for (ProcAction a : onProc) {
                     if (!"exile_effect".equalsIgnoreCase(a.action) || a.effectId == null) continue;
-                    var effect = ExileDB.ExileEffects().get(a.effectId);
+                    var effect = com.robertx22.mine_and_slash.database.registry.ExileDB.ExileEffects().get(a.effectId);
                     if (effect == null) continue;
 
                     int durTicks = Math.max(1, a.durationTicks);
                     int stacks = Math.max(1, a.stacks);
-                    var inst = EffectUtils.applyEffect(sp, effect, durTicks, stacks);
+                    var inst = com.robertx22.mine_and_slash.event_hooks.my_events.EffectUtils.applyEffect(sp, effect, durTicks, stacks);
 
-                    // Attach on-expire duration overrides (ticks directly)
                     if (a.onExpire != null && !a.onExpire.isEmpty()) {
                         if (inst.onExpireEffectDurationTicks == null) {
                             inst.onExpireEffectDurationTicks = new java.util.HashMap<>();
@@ -116,15 +117,14 @@ public class SpendThresholdDef {
                             }
                         }
                     }
-
                 }
             }
 
             @Override
-            public boolean isLockedFor(EntityData unit) {
+            public boolean isLockedFor(com.robertx22.mine_and_slash.capability.entity.EntityData unit) {
                 if (super.isEffectLocked(unit)) return true;
                 if (requireStatId != null && !requireStatId.isEmpty()) {
-                    var st = ExileDB.Stats().get(requireStatId);
+                    var st = com.robertx22.mine_and_slash.database.registry.ExileDB.Stats().get(requireStatId);
                     if (st != null) {
                         return unit.getUnit().getCalculatedStat(st).getValue() <= 0;
                     }
@@ -134,13 +134,11 @@ public class SpendThresholdDef {
         }.withPriority(priority).withShowUi(showUi);
     }
 
-    // --- helpers ---
     private static ResourceType parseResource(String s, ResourceType fallback) {
         if (s == null) return fallback;
         for (ResourceType rt : ResourceType.values()) {
             if (rt.name().equalsIgnoreCase(s)) return rt;
             try {
-                // if your enum exposes an id/string, handle it here:
                 var idField = rt.getClass().getField("id");
                 Object idVal = idField.get(rt);
                 if (idVal instanceof String && ((String) idVal).equalsIgnoreCase(s)) return rt;
@@ -148,4 +146,26 @@ public class SpendThresholdDef {
         }
         return fallback;
     }
+
+    @Override
+    public ExileRegistryType getExileRegistryType() {
+        return ExileRegistryTypes.SPEND_THRESHOLD;
+    }
+
+    @Override
+    public String GUID() {
+        return key;
+    }
+
+    @Override
+    public Class<SpendThresholdJson> getClassForSerialization() {
+        return SpendThresholdJson.class;
+    }
+
+    @Override
+    public int Weight() {
+        return 1000;
+    }
 }
+
+

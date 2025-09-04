@@ -43,6 +43,7 @@ import com.robertx22.mine_and_slash.mmorpg.SlashRef;
 import com.robertx22.mine_and_slash.uncommon.effectdatas.rework.action.StatEffect;
 import com.robertx22.mine_and_slash.uncommon.effectdatas.rework.condition.StatCondition;
 import com.robertx22.mine_and_slash.uncommon.enumclasses.WeaponTypes;
+import com.robertx22.mine_and_slash.mechanics.thresholds.datapack.SpendThresholdJson;
 import net.minecraft.ChatFormatting;
 
 public class ExileRegistryTypes {
@@ -105,6 +106,14 @@ public class ExileRegistryTypes {
     // these 2 need to go in lib, at least the mob one
     // mobs could be deterministic per pos, based on the current map world? but with an event to change it to specific if needed
     public static ExileRegistryType OMEN = ExileRegistryType.register(SlashRef.MODID, "omen", 47, Omen.SERIALIZER, SyncTime.ON_LOGIN);
+
+    // Spend thresholds (datapack-backed) with custom loader folder "spend_thresholds"
+    public static ExileRegistryType SPEND_THRESHOLD = ExileRegistryType.register(new ExileRegistryType(SlashRef.MODID, "spend_thresholds", 48, SpendThresholdJson.SERIALIZER, SyncTime.NEVER) {
+        @Override
+        public BaseDataPackLoader getLoader() {
+            return new BaseDataPackLoader<>(this, this.idWithoutModid, this.getSerializer());
+        }
+    });
 
     public static ExileRegistryType ORB_EXTEND = ExileRegistryType.register(SlashRef.MODID, "orb_extension", 100, ExtendedOrb.SERIALIZER, SyncTime.ON_LOGIN);
 
