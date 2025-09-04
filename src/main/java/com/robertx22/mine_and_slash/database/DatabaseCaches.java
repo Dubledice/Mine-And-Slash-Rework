@@ -32,7 +32,7 @@ public class DatabaseCaches {
             @Override
             public void accept(ExileEvents.AfterDatabaseLoaded event) {
                 resetCaches();
-                // Rebuild SpendThresholdRegistry from ExileDB entries after datapacks load (registry-only path)
+                // Rebuild SpendThresholdRegistry from ExileRegistry entries after datapacks load
                 try {
                     com.robertx22.mine_and_slash.mechanics.thresholds.SpendThresholdRegistry.clearAll();
                     int loaded = 0;

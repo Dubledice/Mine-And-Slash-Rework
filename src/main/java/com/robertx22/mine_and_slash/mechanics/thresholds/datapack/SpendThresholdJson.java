@@ -60,6 +60,7 @@ public class SpendThresholdJson implements JsonExileRegistry<SpendThresholdJson>
 
     public SpendThresholdSpec toSpec() {
         ResourceType res = parseResource(resource, ResourceType.energy);
+        String normKey = sanitizeId(key);
 
         String rawMode = (threshold.mode == null ? "FLAT" : threshold.mode.trim()).toUpperCase(Locale.ROOT);
         boolean mult = threshold.multiplyByLevel;
@@ -82,7 +83,7 @@ public class SpendThresholdJson implements JsonExileRegistry<SpendThresholdJson>
                 ? new HashSet<>(locks.effects) : Collections.emptySet();
 
         return new DataDrivenSpendThresholdSpec(
-                key,
+                normKey,
                 res,
                 mode,
                 threshold.value,
@@ -154,7 +155,13 @@ public class SpendThresholdJson implements JsonExileRegistry<SpendThresholdJson>
 
     @Override
     public String GUID() {
-        return key;
+        return sanitizeId(key);
+    }
+
+    private static String sanitizeId(String id) {
+        String s = (id == null ? "" : id).toLowerCase(java.util.Locale.ROOT);
+        // allow only a-z 0-9 _ . - ; replace others with underscore
+        return s.replaceAll("[^a-z0-9._-]", "_");
     }
 
     @Override
