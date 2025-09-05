@@ -15,7 +15,6 @@ public class DataDrivenSpendThresholdSpec extends SpendThresholdSpec {
     private final float value;
     private final boolean multiplyByLevel;
     @Nullable private final ResourceType percentMaxOf;
-    private final boolean showUi;
 
     public DataDrivenSpendThresholdSpec(
             String key,
@@ -28,16 +27,15 @@ public class DataDrivenSpendThresholdSpec extends SpendThresholdSpec {
             int cooldownTicks,
             boolean lockWhileCooldown,
             boolean dropProgressWhileLocked,
-            boolean resetProgressOnProc,
+            boolean dropProgressOnProc,
             boolean showUi
     ) {
         super(resource, 0f, key,
-              lockWhileEffectIds, cooldownTicks, lockWhileCooldown, dropProgressWhileLocked, resetProgressOnProc, showUi);
+              lockWhileEffectIds, cooldownTicks, lockWhileCooldown, dropProgressWhileLocked, dropProgressOnProc);
         this.mode = mode;
         this.value = value;
         this.multiplyByLevel = multiplyByLevel;
         this.percentMaxOf = percentMaxOf;
-        this.showUi = showUi;
     }
 
     // Backward-compatible ctor (defaults showUi=false)
@@ -52,9 +50,9 @@ public class DataDrivenSpendThresholdSpec extends SpendThresholdSpec {
             int cooldownTicks,
             boolean lockWhileCooldown,
             boolean dropProgressWhileLocked,
-            boolean resetProgressOnProc
+            boolean dropProgressOnProc
     ) {
-        this(key, resource, mode, value, multiplyByLevel, percentMaxOf, lockWhileEffectIds, cooldownTicks, lockWhileCooldown, dropProgressWhileLocked, resetProgressOnProc, false);
+        this(key, resource, mode, value, multiplyByLevel, percentMaxOf, lockWhileEffectIds, cooldownTicks, lockWhileCooldown, dropProgressWhileLocked, dropProgressOnProc, false);
     }
 
     @Override
@@ -79,7 +77,4 @@ public class DataDrivenSpendThresholdSpec extends SpendThresholdSpec {
         // No default action here; datapack loader wires actions.
     }
 
-    public boolean showUi() { return showUi; }
-
-    // Perk lock is handled by callers (anonymous subclass) when needed.
 }

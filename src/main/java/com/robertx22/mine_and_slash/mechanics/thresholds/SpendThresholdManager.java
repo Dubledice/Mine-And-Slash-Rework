@@ -44,7 +44,10 @@ public final class SpendThresholdManager {
                     tracker.clearKey(type, key);
                 }
                 if (debug) {
-                    sp.sendSystemMessage(net.minecraft.network.chat.Component.literal("[SPEND:" + spec.key() + "] locked by cooldown"));
+                    long rem = unit.getSpendRuntime().cooldownRemainingTicks(key, now);
+                    sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "[SPEND:" + spec.key() + "] locked by cooldown (" + rem + "t ~ " + fmtSec((float) rem) + "s)"
+                    ));
                 }
                 continue;
             }
@@ -57,7 +60,6 @@ public final class SpendThresholdManager {
                 if (debug) {
                     sp.sendSystemMessage(net.minecraft.network.chat.Component.literal("[SPEND:" + spec.key() + "] locked"));
                 }
-                // UI updates omitted (packet not included in this commit)
                 continue;
             }
 
@@ -66,21 +68,26 @@ public final class SpendThresholdManager {
             if (threshold <= 0f) continue;
 
             int procs = tracker.addAndConsumeForKey(key, type, loss, threshold);
-            // activity tracking omitted for compatibility
+            if (loss > 0f && procs == 0) {
+                unit.getSpendRuntime().markActivity(key, now);
+                unit.getSpendRuntime().markActive(type, key, spec);
+            }
             if (procs > 0) {
                 spec.onProc(sp, procs);
                 spec.startCooldown(unit, now);
-                if (spec.resetOnProc()) {
+                if (spec.dropProgressOnProc()) {
                     tracker.clearKey(type, key);
                 }
                 if (debug) dbg(sp, "[SPEND:" + spec.key() + "] " + type.id + " ×" + procs + " (thr=" + fmt(threshold) + ")");
-                // UI/active tracking omitted
+                unit.getSpendRuntime().removeActive(type, key);
             } else {
                 float cur = tracker.getKeyProgress(key, type);
                 if (debug) {
                     dbg(sp, "[SPEND:" + spec.key() + "] +" + fmt(loss) + " " + type.id + " (cur=" + fmt(cur) + " / " + fmt(threshold) + ")");
                 }
-                // UI/active tracking omitted
+                if (cur <= 0f) {
+                    unit.getSpendRuntime().removeActive(type, key);
+                }
             }
         }
     }
@@ -91,4 +98,5 @@ public final class SpendThresholdManager {
         sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(msg));
     }
     private static String fmt(float v) { return String.format(java.util.Locale.US, "%.1f", v); }
+    private static String fmtSec(float s) { return String.format(java.util.Locale.US, "%.1f", s); }
 }

@@ -20,8 +20,7 @@ public abstract class SpendThresholdSpec {
     private final int cooldownTicks;
     private final boolean lockWhileCooldown;         // treat cooldown as a lock
     private final boolean dropProgressWhileLocked;
-    private final boolean resetProgressOnProc;
-    private final boolean showUi; // whether to render progress HUD for this spec
+    private final boolean dropProgressOnProc;
 
     // registry ordering (lower runs first)
     private int priority = 0;
@@ -34,8 +33,8 @@ public abstract class SpendThresholdSpec {
                               int cooldownTicks,
                               boolean lockWhileCooldown,
                               boolean dropProgressWhileLocked,
-                              boolean resetProgressOnProc,
-                              boolean showUi) {
+                              boolean dropProgressOnProc
+                              ) {
         this.resource = resource;
         this.perLevelFactor = perLevelFactor;
         this.key = key;
@@ -43,21 +42,9 @@ public abstract class SpendThresholdSpec {
         this.cooldownTicks = Math.max(0, cooldownTicks);
         this.lockWhileCooldown = lockWhileCooldown;
         this.dropProgressWhileLocked = dropProgressWhileLocked;
-        this.resetProgressOnProc = resetProgressOnProc;
-        this.showUi = showUi;
+        this.dropProgressOnProc = dropProgressOnProc;
     }
 
-    // Backward-compatible ctor (defaults showUi=false)
-    public SpendThresholdSpec(ResourceType resource,
-                              float perLevelFactor,
-                              String key,
-                              Set<String> lockWhileEffectIds,
-                              int cooldownTicks,
-                              boolean lockWhileCooldown,
-                              boolean dropProgressWhileLocked,
-                              boolean resetProgressOnProc) {
-        this(resource, perLevelFactor, key, lockWhileEffectIds, cooldownTicks, lockWhileCooldown, dropProgressWhileLocked, resetProgressOnProc, false);
-    }
 
     // ===== accessors =====
     public ResourceType resource()              { return resource; }
@@ -65,24 +52,14 @@ public abstract class SpendThresholdSpec {
     public String keyFor(EntityData unit)       { return key; }
     public boolean lockWhileCooldown()          { return lockWhileCooldown; }
     public boolean dropProgressWhileLocked()    { return dropProgressWhileLocked; }
-    public boolean resetOnProc()                { return resetProgressOnProc; }
+    public boolean dropProgressOnProc()         { return dropProgressOnProc; }
     public int cooldownTicks()                  { return cooldownTicks; }
     public int priority()                       { return priority; }
-    public boolean showUi()                     { return showUi; }
 
     
     public SpendThresholdSpec withPriority(int p) {
         this.priority = p;
         return this;
-    }
-
-
-    public SpendThresholdSpec withShowUi(boolean on) {
-        return new SpendThresholdSpec(this.resource, this.perLevelFactor, this.key, this.lockWhileEffectIds, this.cooldownTicks, this.lockWhileCooldown, this.dropProgressWhileLocked, this.resetProgressOnProc, on) {
-            @Override public float thresholdFor(EntityData unit) { return SpendThresholdSpec.this.thresholdFor(unit); }
-            @Override public void onProc(ServerPlayer sp, int procs) { SpendThresholdSpec.this.onProc(sp, procs); }
-            @Override public boolean isLockedFor(EntityData unit) { return SpendThresholdSpec.this.isLockedFor(unit); }
-        }.withPriority(this.priority);
     }
 
     /** Default threshold = perLevelFactor × LVL. Subclasses may override. */
