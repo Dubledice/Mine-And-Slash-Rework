@@ -30,8 +30,6 @@ public class SpellCtx {
 
 
     public String expiringEffectId = null;
-    public java.util.Map<String, Integer> onExpireEffectDurationTicks = java.util.Collections.emptyMap();
-    public java.util.Set<String> onExpireApplied = new java.util.HashSet<>();
 
 
     public SpellCtx setSourceEntity(Entity en) {

@@ -59,10 +59,13 @@ public class ExileEffectAction extends SpellAction {
             targets.forEach(t -> {
 
                 if (RandomUtils.roll(chance)) {
-                    // If ON_EXPIRE, skip only GIVE_STACKS (handled upstream to avoid same-tick races),
-                    // but DO allow REMOVE_STACKS so consumptions like Overheat work on entity-expire.
+                    // If ON_EXPIRE and we're trying to re-apply the very same expiring effect, skip to avoid
+                    // same-tick reapplication races. Allow GIVE_STACKS for other effects (e.g., Burnout after WOTJ).
                     if (ctx.activation == com.robertx22.mine_and_slash.database.data.spells.components.EntityActivation.ON_EXPIRE
-                            && action == GiveOrTake.GIVE_STACKS) {
+                            && action == GiveOrTake.GIVE_STACKS
+                            && ctx.expiringEffectId != null
+                            && potion != null
+                            && ctx.expiringEffectId.equals(potion.GUID())) {
                         return;
                     }
                     ExilePotionEvent potionEvent = EventBuilder.ofEffect(ctx.calculatedSpellData, ctx.caster, t, Load.Unit(ctx.caster)

@@ -9,8 +9,6 @@ import net.minecraft.world.level.Level;
 
 import java.text.DecimalFormat;
 import java.util.UUID;
-import java.util.Map;
-import java.util.HashMap;
 
 public class ExileEffectInstanceData {
 
@@ -24,7 +22,6 @@ public class ExileEffectInstanceData {
     public float str_multi = 1;
     public int ticks_left = 0;
 
-    public Map<String, Integer> onExpireEffectDurationTicks = new HashMap<>();
 
     public boolean isSpellNoLongerAllocated(LivingEntity en) {
         if (self_cast) {
