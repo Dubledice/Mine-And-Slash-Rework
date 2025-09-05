@@ -13,7 +13,6 @@ import com.robertx22.mine_and_slash.database.data.spells.spell_classes.SpellCtx;
 import com.robertx22.mine_and_slash.database.data.value_calc.LeveledValue;
 import com.robertx22.mine_and_slash.database.registry.ExileDB;
 import com.robertx22.mine_and_slash.database.registry.ExileRegistryTypes;
-import com.robertx22.mine_and_slash.event_hooks.my_events.EffectUtils;
 import com.robertx22.mine_and_slash.mmorpg.DebugHud;
 import com.robertx22.mine_and_slash.mmorpg.SlashRef;
 import com.robertx22.mine_and_slash.saveclasses.ExactStatData;
@@ -271,40 +270,15 @@ public class ExileEffect implements JsonExileRegistry<ExileEffect>, IAutoGson<Ex
                 if (spell != null && caster != null) {
                     SpellCtx ctx = SpellCtx.onExpire(caster, target, data.calcSpell);
                     ctx.expiringEffectId = this.GUID();
-                    ctx.onExpireEffectDurationTicks = (data.onExpireEffectDurationTicks == null)
-                            ? java.util.Collections.emptyMap()
-                            : java.util.Collections.unmodifiableMap(data.onExpireEffectDurationTicks);
+                    // datapack-driven expire logic: handled entirely by attached spell components
                     spell.tryActivate(Spell.DEFAULT_EN_NAME, ctx); // source is default name at all times
                     if (DebugHud.ON_EXPIRE && target instanceof ServerPlayer sp2) {
                         DebugHud.send(sp2, "expire_dispatched_" + GUID(), "[EFFECT][EXPIRE] Dispatched attached spell for " + GUID(), 400);
-                    }
-
-                    if (!target.level().isClientSide && data.onExpireEffectDurationTicks != null && !data.onExpireEffectDurationTicks.isEmpty()) {
-                        boolean anyApplied = false;
-                        for (var entry : data.onExpireEffectDurationTicks.entrySet()) {
-                            String effId = entry.getKey();
-                            int durTicks = Math.max(1, entry.getValue());
-                            if (ctx.onExpireApplied != null && ctx.onExpireApplied.contains(effId)) {
-                                continue;
-                            }
-                            var extraEff = ExileDB.ExileEffects().get(effId);
-                            if (extraEff == null) {
-                                continue;
-                            }
-                            var instT = EffectUtils.applyEffect(target, extraEff, durTicks, 1, false);
-                            if (instT != null) {
-                                instT.is_infinite = false;
-                                instT.caster_uuid = caster.getStringUUID();
-                                if (DebugHud.ON_EXPIRE && target instanceof ServerPlayer spx) {
-                                    DebugHud.send(spx, "expire_extra_" + effId, "[EFFECT][EXPIRE] Extra-applied " + effId + " tl=" + instT.ticks_left, 400);
-                                }
-                                anyApplied = true;
-                            }
-                        }
-                        if (anyApplied) {
-                            var unitT = Load.Unit(target);
-                            unitT.sync.setDirty();
-                        }
+                        try {
+                            var comps = spell.getDataForEntity(Spell.DEFAULT_EN_NAME);
+                            int compCount = (comps == null) ? 0 : comps.size();
+                            DebugHud.send(sp2, "expire_components_" + GUID(), "[EFFECT][EXPIRE] Components=" + compCount, 400);
+                        } catch (Exception ignored) {}
                     }
                 }
             }

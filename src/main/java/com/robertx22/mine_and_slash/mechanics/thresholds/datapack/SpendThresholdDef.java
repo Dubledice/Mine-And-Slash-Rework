@@ -90,8 +90,6 @@ public class SpendThresholdDef {
             public void onProc(ServerPlayer sp, int procs) {
                 if (onProc == null || onProc.isEmpty()) return;
 
-                var unit  = com.robertx22.mine_and_slash.uncommon.datasaving.Load.Unit(sp);
-                var store = unit.getStatusEffectsData();
 
                 for (ProcAction a : onProc) {
                     if (!"exile_effect".equalsIgnoreCase(a.action) || a.effectId == null) continue;
@@ -100,19 +98,8 @@ public class SpendThresholdDef {
 
                     int durTicks = Math.max(1, a.durationTicks);
                     int stacks = Math.max(1, a.stacks);
-                    var inst = EffectUtils.applyEffect(sp, effect, durTicks, stacks);
+                    EffectUtils.applyEffect(sp, effect, durTicks, stacks);
 
-                    if (a.onExpire != null && !a.onExpire.isEmpty()) {
-                        if (inst.onExpireEffectDurationTicks == null) {
-                            inst.onExpireEffectDurationTicks = new java.util.HashMap<>();
-                        }
-                        for (var e : a.onExpire.entrySet()) {
-                            int ticks = Math.max(0, e.getValue());
-                            if (ticks > 0) {
-                                inst.onExpireEffectDurationTicks.put(e.getKey(), ticks);
-                            }
-                        }
-                    }
                 }
             }
 
