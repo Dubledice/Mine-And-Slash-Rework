@@ -6,6 +6,7 @@ import com.robertx22.mine_and_slash.database.data.exile_effects.ExileEffectInsta
 import com.robertx22.mine_and_slash.database.registry.ExileDB;
 import com.robertx22.mine_and_slash.uncommon.datasaving.Load;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 
 /**
  * Utility for applying short-TTL "state" effects (e.g., leeching_state) to players.
@@ -25,42 +26,43 @@ import net.minecraft.server.level.ServerPlayer;
 public final class EffectUtils {
     private EffectUtils() {}
 
-    /**
-     * Apply/refresh a state effect on the player.
-     *
-     * @param sp            target player
-     * @param ctx           effect context (ids defined in ModEffects)
-     * @param durationTicks desired remaining lifetime (ticks); merged via MAX
-     * @param stacks        desired stacks; clamped to effect.max_stacks and merged via MAX
-     * @return ExileEffectInstanceData for the applied effect, or null if resolve failed.
-     */
     public static ExileEffectInstanceData applyState(ServerPlayer sp, EffectCtx ctx, int durationTicks, int stacks) {
         final ExileEffect effect = resolveEffect(ctx);
         if (effect == null) return null;
-
-        return applyEffect(sp, effect, durationTicks, stacks);
+        return applyEffect((LivingEntity) sp, effect, durationTicks, stacks);
     }
 
     public static ExileEffectInstanceData applyEffect(ServerPlayer sp, ExileEffect effect, int durationTicks, int stacks) {
-        if (effect == null) return null;
+        return applyEffect((LivingEntity) sp, effect, durationTicks, stacks, true);
+    }
 
-        var unit  = Load.Unit(sp);
+    public static ExileEffectInstanceData applyEffect(LivingEntity entity, ExileEffect effect, int durationTicks, int stacks) {
+        return applyEffect(entity, effect, durationTicks, stacks, true);
+    }
+
+    public static ExileEffectInstanceData applyEffect(LivingEntity entity, ExileEffect effect, int durationTicks, int stacks, boolean markDirty) {
+        if (effect == null || entity == null) return null;
+        if (durationTicks <= 0 || stacks <= 0) return null;
+
+        var unit  = Load.Unit(entity);
         var store = unit.getStatusEffectsData();
-        var inst  = store.getOrCreate(effect); // persist if missing
+        var inst  = store.getOrCreate(effect);
 
-        // Merge stacks/ticks: refresh semantics (never decrease on re-apply)
         final int wanted = Math.max(1, stacks);
         final int capped = (effect.max_stacks > 0) ? Math.min(wanted, effect.max_stacks) : wanted;
         inst.stacks     = Math.max(inst.stacks, capped);
         inst.ticks_left = Math.max(inst.ticks_left, durationTicks);
 
-        // Keep vanilla stats / one-of-a-kind cleanup in sync
-        effect.onApply(sp);
-        unit.sync.setDirty(); // network/state sync
+        try { effect.onApply(entity); } catch (Exception ignored) {}
+        if (markDirty) {
+            unit.equipmentCache.STATUS.setDirty();
+            if (entity instanceof ServerPlayer) {
+                unit.sync.setDirty();
+            }
+        }
         return inst;
     }
 
-    /** Try both resourcePath (preferred) and id; some data uses either. */
     private static ExileEffect resolveEffect(EffectCtx ctx) {
         ExileEffect eff = ExileDB.ExileEffects().get(ctx.resourcePath);
         if (eff == null) eff = ExileDB.ExileEffects().get(ctx.id);

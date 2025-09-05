@@ -31,36 +31,19 @@ public class DataDrivenSpendThresholdSpec extends SpendThresholdSpec {
             boolean showUi
     ) {
         super(resource, 0f, key,
-              lockWhileEffectIds, cooldownTicks, lockWhileCooldown, dropProgressWhileLocked, dropProgressOnProc);
+              lockWhileEffectIds, cooldownTicks, lockWhileCooldown, dropProgressWhileLocked, dropProgressOnProc, showUi);
         this.mode = mode;
         this.value = value;
         this.multiplyByLevel = multiplyByLevel;
         this.percentMaxOf = percentMaxOf;
     }
 
-    // Backward-compatible ctor (defaults showUi=false)
-    public DataDrivenSpendThresholdSpec(
-            String key,
-            ResourceType resource,
-            ThresholdMode mode,
-            float value,
-            boolean multiplyByLevel,
-            @Nullable ResourceType percentMaxOf,
-            Set<String> lockWhileEffectIds,
-            int cooldownTicks,
-            boolean lockWhileCooldown,
-            boolean dropProgressWhileLocked,
-            boolean dropProgressOnProc
-    ) {
-        this(key, resource, mode, value, multiplyByLevel, percentMaxOf, lockWhileEffectIds, cooldownTicks, lockWhileCooldown, dropProgressWhileLocked, dropProgressOnProc, false);
-    }
 
     @Override
     public float thresholdFor(EntityData unit) {
         float base;
         switch (mode) {
             case PERCENT_OF_MAX -> {
-                // default to this spec's resource if percentOf is null
                 ResourceType tgt = (percentMaxOf != null) ? percentMaxOf : resource();
                 float max = unit.getResources().getMax(unit.getEntity(), tgt);
                 base = (value / 100f) * max;
@@ -74,7 +57,5 @@ public class DataDrivenSpendThresholdSpec extends SpendThresholdSpec {
 
     @Override
     public void onProc(ServerPlayer sp, int procs) {
-        // No default action here; datapack loader wires actions.
     }
-
 }

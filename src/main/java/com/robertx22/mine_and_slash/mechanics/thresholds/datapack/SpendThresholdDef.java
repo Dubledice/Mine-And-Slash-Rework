@@ -23,7 +23,7 @@ public class SpendThresholdDef {
         public String mode = "FLAT";
         public float value = 0f;
         @SerializedName("multiply_by_level") public boolean multiplyByLevel = false;
-        @SerializedName("percent_of") public String percentOf; // optional
+        @SerializedName("percent_of") public String percentOf; 
     }
     public Threshold threshold = new Threshold();
 
@@ -54,13 +54,14 @@ public class SpendThresholdDef {
     public SpendThresholdSpec toSpec() {
         ResourceType res = parseResource(resource, ResourceType.energy);
 
-        // Modes supported: FLAT (optionally with multiply_by_level) or PERCENT_OF_MAX
         String rawMode = (threshold.mode == null ? "FLAT" : threshold.mode.trim()).toUpperCase(Locale.ROOT);
         boolean mult = threshold.multiplyByLevel;
-        DataDrivenSpendThresholdSpec.ThresholdMode mode =
-                "PERCENT_OF_MAX".equals(rawMode)
-                        ? DataDrivenSpendThresholdSpec.ThresholdMode.PERCENT_OF_MAX
-                        : DataDrivenSpendThresholdSpec.ThresholdMode.FLAT; // default + treats legacy values as FLAT
+        DataDrivenSpendThresholdSpec.ThresholdMode mode;
+        if ("PERCENT_OF_MAX".equals(rawMode)) {
+            mode = DataDrivenSpendThresholdSpec.ThresholdMode.PERCENT_OF_MAX;
+        } else {
+            mode = DataDrivenSpendThresholdSpec.ThresholdMode.FLAT; // default + treats legacy values as FLAT
+        }
 
         ResourceType percentOf = null;
         if (mode == DataDrivenSpendThresholdSpec.ThresholdMode.PERCENT_OF_MAX
@@ -100,6 +101,18 @@ public class SpendThresholdDef {
                     int durTicks = Math.max(1, a.durationTicks);
                     int stacks = Math.max(1, a.stacks);
                     var inst = EffectUtils.applyEffect(sp, effect, durTicks, stacks);
+
+                    if (a.onExpire != null && !a.onExpire.isEmpty()) {
+                        if (inst.onExpireEffectDurationTicks == null) {
+                            inst.onExpireEffectDurationTicks = new java.util.HashMap<>();
+                        }
+                        for (var e : a.onExpire.entrySet()) {
+                            int ticks = Math.max(0, e.getValue());
+                            if (ticks > 0) {
+                                inst.onExpireEffectDurationTicks.put(e.getKey(), ticks);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -123,7 +136,6 @@ public class SpendThresholdDef {
         for (ResourceType rt : ResourceType.values()) {
             if (rt.name().equalsIgnoreCase(s)) return rt;
             try {
-                // if your enum exposes an id/string, handle it here:
                 var idField = rt.getClass().getField("id");
                 Object idVal = idField.get(rt);
                 if (idVal instanceof String && ((String) idVal).equalsIgnoreCase(s)) return rt;

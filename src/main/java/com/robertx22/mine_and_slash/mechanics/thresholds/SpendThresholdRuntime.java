@@ -81,6 +81,14 @@ public class SpendThresholdRuntime {
         return false;
     }
 
+    public boolean progressScaledChanged(String key, float progress, int perUnit) {
+        if (perUnit <= 1) {
+            return progressIntChanged(key, (int) progress);
+        }
+        int scaled = Math.round(progress * perUnit);
+        return progressIntChanged(key, scaled);
+    }
+
     // === Active key index ===
     public void markActive(ResourceType rt, String key, SpendThresholdSpec spec) {
         if (rt == null || key == null || key.isEmpty() || spec == null) return;
@@ -88,7 +96,6 @@ public class SpendThresholdRuntime {
         if (set == null) {
             set = new HashSet<>();
             activeByResource.put(rt, set);
-            // create and cache a read-only view for this resource set to avoid future allocations
             activeByResourceReadOnly.put(rt, java.util.Collections.unmodifiableSet(set));
         }
         set.add(key);
@@ -108,7 +115,6 @@ public class SpendThresholdRuntime {
         }
         KeyState ks = states.get(key);
         if (ks != null) {
-            // clear volatile state but keep cooldown to preserve gating behavior
             ks.spec = null;
             ks.lastActivityTick = 0L;
             ks.lastDecayTick = 0L;
@@ -118,13 +124,7 @@ public class SpendThresholdRuntime {
 
     public Set<String> getActiveKeys(ResourceType rt) {
         var s = activeByResource.get(rt);
-        if (s == null || s.isEmpty()) return java.util.Set.of();
-        var view = activeByResourceReadOnly.get(rt);
-        if (view == null) {
-            view = java.util.Collections.unmodifiableSet(s);
-            activeByResourceReadOnly.put(rt, view);
-        }
-        return view;
+        return (s == null || s.isEmpty()) ? java.util.Set.of() : java.util.Set.copyOf(s);
     }
 
     public SpendThresholdSpec getSpec(String key) {
